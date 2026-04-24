@@ -685,7 +685,43 @@ const TargetFinder = () => {
   const [selFunding, setSelFunding] = useState([]);
   const [selProduct, setSelProduct] = useState([]);
   const [selRegion, setSelRegion] = useState([]);
+  const [searchEngine, setSearchEngine] = useState("google");
+
   const toggle = (set, setter, val) => setter(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
+
+  // Build a web search query from selected filters
+  const buildSearchQuery = (extraTerms = "") => {
+    const parts = [];
+    if (selIndustries.length) parts.push(selIndustries.join(" OR "));
+    if (selFunding.length) parts.push("(" + selFunding.join(" OR ") + ") funded");
+    if (selRevenue.length) parts.push("revenue " + selRevenue.join(" OR "));
+    if (selEmployees.length) parts.push("employees " + selEmployees.join(" OR "));
+    if (selRegion.length) parts.push(selRegion.join(" OR "));
+    if (selProduct.length) parts.push(selProduct.join(" OR "));
+    if (extraTerms) parts.push(extraTerms);
+    parts.push("company B2B");
+    return parts.join(" ");
+  };
+
+  const openWebSearch = (engine = searchEngine, extra = "") => {
+    const q = buildSearchQuery(extra);
+    const urls = {
+      google: `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+      linkedin: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(q)}`,
+      crunchbase: `https://www.crunchbase.com/discover/organization.companies/field/organizations/categories/${encodeURIComponent(selIndustries[0] || "technology")}`,
+    };
+    window.open(urls[engine] || urls.google, "_blank");
+  };
+
+  const openCompanySearch = (company) => {
+    const q = `${company.name} ${company.industry} company`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
+  };
+
+  const openLinkedInCompany = (company) => {
+    window.open(`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(company.name)}`, "_blank");
+  };
+
   const prospects = [
     { name:"Apex Systems", industry:"SaaS", employees:"201–1,000", revenue:"$10M–$100M", funding:"Series B", region:"North America", color:"#4c8fff", desc:"B2B workflow automation, 450 employees", match:96 },
     { name:"NovaPay", industry:"FinTech", employees:"51–200", revenue:"$1M–$10M", funding:"Series A", region:"Europe", color:"#818cf8", desc:"Payment infrastructure, 120 employees", match:88 },
@@ -703,10 +739,15 @@ const TargetFinder = () => {
     if (selRegion.length && !selRegion.includes(p.region)) return false;
     return true;
   }).sort((a, b) => b.match - a.match);
+
   const activeFilters = selIndustries.length + selRevenue.length + selEmployees.length + selFunding.length + selProduct.length + selRegion.length;
+
+  const hasFilters = activeFilters > 0;
+
   return (
     <div className="fade">
       <div style={{ display: "flex", gap: 16 }}>
+        {/* Filters panel */}
         <div style={{ width: 270, flexShrink: 0 }}>
           <div className="card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -721,6 +762,7 @@ const TargetFinder = () => {
                 </button>
               )}
             </div>
+
             {[
               { label:"Industry", items:INDUSTRIES, sel:selIndustries, setSel: v => toggle(selIndustries, setSelIndustries, v) },
               { label:"Revenue", items:REVENUE_RANGES, sel:selRevenue, setSel: v => toggle(selRevenue, setSelRevenue, v) },
@@ -740,25 +782,70 @@ const TargetFinder = () => {
                 </div>
               </div>
             ))}
+
+            {/* Web Search Section */}
+            <div style={{ borderTop: "1px solid var(--b1)", paddingTop: 16, marginTop: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#dde8ff", marginBottom: 10, display:"flex", alignItems:"center", gap:6 }}>
+                <Globe size={12} />
+                Search Real Companies
+              </div>
+              <div style={{ fontSize: 10.5, color: "#6d8ab5", marginBottom: 10, lineHeight: 1.5 }}>
+                {hasFilters
+                  ? `Use your ${activeFilters} filter${activeFilters > 1 ? "s" : ""} to find real companies online:`
+                  : "Select filters above, then search the web for real matching companies:"}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                <button className="btn btn-p" style={{ width:"100%", justifyContent:"center", gap:6 }}
+                  onClick={() => openWebSearch("google")}>
+                  <Search size={11} /> Search Google
+                </button>
+                <button className="btn btn-g" style={{ width:"100%", justifyContent:"center", gap:6, border:"1px solid #0a66c2", color:"#0a66c2" }}
+                  onClick={() => openWebSearch("linkedin")}>
+                  <Users size={11} /> Search LinkedIn
+                </button>
+                <button className="btn btn-g" style={{ width:"100%", justifyContent:"center", gap:6 }}
+                  onClick={() => openWebSearch("crunchbase")}>
+                  <BarChart3 size={11} /> Browse Crunchbase
+                </button>
+              </div>
+              {hasFilters && (
+                <div style={{ marginTop: 10, padding: "8px 10px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--b1)" }}>
+                  <div style={{ fontSize: 9.5, color: "#3a5078", marginBottom: 4, fontWeight: 700 }}>SEARCH QUERY PREVIEW</div>
+                  <div style={{ fontSize: 10.5, color: "#6d8ab5", wordBreak: "break-word", lineHeight: 1.5 }}>{buildSearchQuery()}</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Results */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-            <div style={{ fontSize:13, fontWeight:700, color:"#dde8ff" }}>{prospects.length} Matching Prospects</div>
-            <div style={{ fontSize:11, color:"#6d8ab5" }}>Sorted by match score</div>
+            <div style={{ fontSize:13, fontWeight:700, color:"#dde8ff" }}>
+              {prospects.length} Suggested Prospects
+            </div>
+            <div style={{ fontSize:11, color:"#6d8ab5" }}>Sorted by match score · click cards to search web</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {prospects.length === 0 ? (
               <div className="card" style={{ textAlign:"center", padding:"40px 20px", color:"#3a5078" }}>
                 <Target size={32} style={{ marginBottom:10, opacity:.4 }} />
                 <div style={{ fontSize:14, fontWeight:700, marginBottom:6 }}>No matches found</div>
-                <div style={{ fontSize:12 }}>Try adjusting your filters to find more prospects</div>
+                <div style={{ fontSize:12, marginBottom:16 }}>Try adjusting your filters to find more prospects</div>
+                <button className="btn btn-p" style={{ margin:"0 auto" }} onClick={() => openWebSearch("google")}>
+                  <Search size={11} /> Search Google with current filters
+                </button>
               </div>
             ) : prospects.map((p, i) => (
-              <div key={i} className="prospect">
-                <div className="co-ico" style={{ background: p.color }}>{p.name[0]}</div>
+              <div key={i} className="prospect" style={{ cursor: "default" }}>
+                <div className="co-ico" style={{ background: p.color, cursor:"pointer" }} onClick={() => openCompanySearch(p)} title="Search on Google">
+                  {p.name[0]}
+                </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div className="prospect-name">{p.name}</div>
+                  <div className="prospect-name" style={{ cursor:"pointer", textDecoration:"underline", textDecorationColor:"rgba(76,143,255,.3)" }}
+                    onClick={() => openCompanySearch(p)}>
+                    {p.name}
+                  </div>
                   <div className="prospect-meta">{p.desc}</div>
                   <div className="prospect-tags">
                     <span className="chip ind">{p.industry}</span>
@@ -766,16 +853,52 @@ const TargetFinder = () => {
                     <span className="chip">{p.employees} emp</span>
                     <span className="chip"><MapPin size={8} style={{display:"inline",marginRight:3}} />{p.region}</span>
                   </div>
+                  <div style={{ display:"flex", gap:6, marginTop:8 }}>
+                    <button className="btn btn-g" style={{ padding:"3px 9px", fontSize:10, gap:4 }} onClick={() => openCompanySearch(p)}>
+                      <Search size={9} />Google
+                    </button>
+                    <button className="btn btn-g" style={{ padding:"3px 9px", fontSize:10, gap:4, color:"#0a66c2", borderColor:"#0a66c2" }} onClick={() => openLinkedInCompany(p)}>
+                      <Users size={9} />LinkedIn
+                    </button>
+                    <button className="btn btn-g" style={{ padding:"3px 9px", fontSize:10, gap:4 }}
+                      onClick={() => window.open(`https://www.crunchbase.com/textsearch?q=${encodeURIComponent(p.name)}`, "_blank")}>
+                      <BarChart3 size={9} />Crunchbase
+                    </button>
+                  </div>
                 </div>
                 <div className="match-score">
-                  <div className="ms-val" style={{ color: p.match >= 85 ? "#10d9a0" : p.match >= 70 ? "#f59e0b" : "#6d8ab5" }}>{p.match}%</div>
+                  <div className="ms-val" style={{ color: p.match >= 85 ? "#10d9a0" : p.match >= 70 ? "#f59e0b" : "#6d8ab5" }}>
+                    {p.match}%
+                  </div>
                   <div className="ms-l">match</div>
                   <div style={{ marginTop:6 }}>
-                    <button className="btn btn-p" style={{ padding:"4px 10px", fontSize:10 }}><Plus size={9} />Add to CRM</button>
+                    <button className="btn btn-p" style={{ padding:"4px 10px", fontSize:10 }}>
+                      <Plus size={9} />Add to CRM
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
+
+            {/* Bottom search CTA */}
+            {prospects.length > 0 && (
+              <div className="card" style={{ padding:"16px 18px", textAlign:"center", background:"rgba(76,143,255,.05)", border:"1px dashed var(--b2)" }}>
+                <div style={{ fontSize:12, color:"#6d8ab5", marginBottom:10 }}>
+                  Find more real companies matching these filters:
+                </div>
+                <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+                  <button className="btn btn-p" style={{ gap:6 }} onClick={() => openWebSearch("google")}>
+                    <Search size={11} />Search Google
+                  </button>
+                  <button className="btn btn-g" style={{ gap:6, border:"1px solid #0a66c2", color:"#0a66c2" }} onClick={() => openWebSearch("linkedin")}>
+                    <Users size={11} />LinkedIn Companies
+                  </button>
+                  <button className="btn btn-g" style={{ gap:6 }} onClick={() => openWebSearch("crunchbase")}>
+                    <BarChart3 size={11} />Crunchbase
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
