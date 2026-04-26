@@ -710,16 +710,16 @@ const TargetFinder = () => {
       linkedin: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(q)}`,
       crunchbase: `https://www.crunchbase.com/discover/organization.companies/field/organizations/categories/${encodeURIComponent(selIndustries[0] || "technology")}`,
     };
-    window.open(urls[engine] || urls.google, "_blank");
+    window.open(urls[engine] || urls.google, "_blank", "noopener,noreferrer");
   };
 
   const openCompanySearch = (company) => {
     const q = `${company.name} ${company.industry} company`;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener,noreferrer");
   };
 
   const openLinkedInCompany = (company) => {
-    window.open(`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(company.name)}`, "_blank");
+    window.open(`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(company.name)}`, "_blank", "noopener,noreferrer");
   };
 
   const prospects = [
