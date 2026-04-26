@@ -482,6 +482,24 @@ const TargetFinder=({addDeal})=>{
   const [addedIds,setAddedIds]=useState(new Set());
   const [notification,setNotification]=useState(null);
   const toggle=(setter)=>(val)=>setter(prev=>prev.includes(val)?prev.filter(x=>x!==val):[...prev,val]);
+  const buildSearchQuery=(extraTerms="")=>{
+    const parts=[];
+    if(selIndustries.length) parts.push(selIndustries.join(" OR "));
+    if(selRevenue.length) parts.push("revenue "+selRevenue.join(" OR "));
+    if(selEmployees.length) parts.push(selEmployees.join(" OR ")+" employees");
+    if(selFunding.length) parts.push(selFunding.join(" OR ")+" funding");
+    if(selRegion.length) parts.push(selRegion.join(" OR "));
+    if(searchTerm) parts.push(searchTerm);
+    if(extraTerms) parts.push(extraTerms);
+    return (parts.length?parts.join(" "):"B2B SaaS companies")+" companies";
+  };
+  const openWebSearch=(engine)=>{
+    const q=buildSearchQuery();
+    if(engine==="google") window.open("https://www.google.com/search?q="+encodeURIComponent(q),"_blank");
+    else if(engine==="linkedin") window.open("https://www.linkedin.com/search/results/companies/?keywords="+encodeURIComponent(q),"_blank");
+    else if(engine==="crunchbase") window.open("https://www.crunchbase.com/search/organizations/field/organizations/facet_ids/company?q="+encodeURIComponent(q),"_blank");
+    _analytics.track("filter_web_search",{engine,query:q});
+  };
   const prospects=[
     {id:1,name:"Apex Dynamics",industry:"SaaS",employees:"201–1,000",revenue:"$10M–$100M",funding:"Series B",region:"North America",color:"#6366f1",desc:"AI-powered workflow automation, 340 employees",match:94},
     {id:2,name:"GreenTech Solutions",industry:"CleanTech",employees:"201–1,000",revenue:"$100M+",funding:"Series C+",region:"North America",color:"#06b6d4",desc:"Renewable energy analytics, 600 employees",match:91},
@@ -530,6 +548,35 @@ const TargetFinder=({addDeal})=>{
       <FC label="Funding" options={fundings} selected={selFunding} onToggle={toggle(setSelFunding)}/>
       <FC label="Region" options={regions} selected={selRegion} onToggle={toggle(setSelRegion)}/>
       {(selIndustries.length||selRevenue.length||selEmployees.length||selFunding.length||selRegion.length||searchTerm)?<button onClick={()=>{setSelIndustries([]);setSelRevenue([]);setSelEmployees([]);setSelFunding([]);setSelRegion([]);setSearchTerm("");}} style={{marginTop:8,padding:"6px 12px",background:"#1e293b",border:"1px solid #334155",borderRadius:6,color:"#94a3b8",fontSize:12,cursor:"pointer",width:"100%"}}>Clear all filters</button>:null}
+      {/* Web Search Section */}
+      <div style={{borderTop:"1px solid var(--b1)",paddingTop:16,marginTop:16}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#dde8ff",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <Globe size={12}/>
+          Search Real Companies
+        </div>
+        <div style={{fontSize:10.5,color:"#6d8ab5",marginBottom:10,lineHeight:1.5}}>
+          {(selIndustries.length+selRevenue.length+selEmployees.length+selFunding.length+selRegion.length)>0
+            ? `Use your ${selIndustries.length+selRevenue.length+selEmployees.length+selFunding.length+selRegion.length} filter${(selIndustries.length+selRevenue.length+selEmployees.length+selFunding.length+selRegion.length)>1?"s":""} to find real companies online:`
+            : "Select filters above, then search the web for real matching companies:"}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:7}}>
+          <button className="btn btn-p" style={{width:"100%",justifyContent:"center",gap:6}} onClick={()=>openWebSearch("google")}>
+            <Search size={11}/> Search Google
+          </button>
+          <button className="btn btn-g" style={{width:"100%",justifyContent:"center",gap:6,border:"1px solid #0a66c2",color:"#0a66c2"}} onClick={()=>openWebSearch("linkedin")}>
+            <Users size={11}/> Search LinkedIn
+          </button>
+          <button className="btn btn-g" style={{width:"100%",justifyContent:"center",gap:6}} onClick={()=>openWebSearch("crunchbase")}>
+            <BarChart3 size={11}/> Browse Crunchbase
+          </button>
+        </div>
+        {(selIndustries.length+selRevenue.length+selEmployees.length+selFunding.length+selRegion.length)>0&&(
+          <div style={{marginTop:10,padding:"8px 10px",background:"var(--s2)",borderRadius:8,border:"1px solid var(--b1)"}}>
+            <div style={{fontSize:9.5,color:"#3a5078",marginBottom:4,fontWeight:700}}>SEARCH QUERY PREVIEW</div>
+            <div style={{fontSize:10.5,color:"#6d8ab5",wordBreak:"break-word",lineHeight:1.5}}>{buildSearchQuery()}</div>
+          </div>
+        )}
+      </div>
     </div>
     <div style={{flex:1,background:"#0a0f1a",overflowY:"auto",padding:24,position:"relative"}}>
       {notification&&<div style={{position:"fixed",top:20,right:20,background:"#10b981",color:"#fff",padding:"10px 18px",borderRadius:8,fontWeight:600,fontSize:13,zIndex:1000,boxShadow:"0 4px 12px rgba(0,0,0,0.3)"}}>✓ {notification}</div>}
