@@ -678,229 +678,183 @@ const Companies = ({ search }) => {
 };
 
 // ─────────────────── TARGET FINDER ───────────────────
-const TargetFinder = () => {
+const TargetFinder = ({ addDeal }) => {
   const [selIndustries, setSelIndustries] = useState([]);
   const [selRevenue, setSelRevenue] = useState([]);
   const [selEmployees, setSelEmployees] = useState([]);
   const [selFunding, setSelFunding] = useState([]);
   const [selProduct, setSelProduct] = useState([]);
   const [selRegion, setSelRegion] = useState([]);
-  const [searchEngine, setSearchEngine] = useState("google");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [addedIds, setAddedIds] = useState(new Set());
+  const [notification, setNotification] = useState(null);
 
-  const toggle = (set, setter, val) => setter(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
-
-  // Build a web search query from selected filters
-  const buildSearchQuery = (extraTerms = "") => {
-    const parts = [];
-    if (selIndustries.length) parts.push(selIndustries.join(" OR "));
-    if (selFunding.length) parts.push("(" + selFunding.join(" OR ") + ") funded");
-    if (selRevenue.length) parts.push("revenue " + selRevenue.join(" OR "));
-    if (selEmployees.length) parts.push("employees " + selEmployees.join(" OR "));
-    if (selRegion.length) parts.push(selRegion.join(" OR "));
-    if (selProduct.length) parts.push(selProduct.join(" OR "));
-    if (extraTerms) parts.push(extraTerms);
-    parts.push("company B2B");
-    return parts.join(" ");
-  };
-
-  const openWebSearch = (engine = searchEngine, extra = "") => {
-    const q = buildSearchQuery(extra);
-    const urls = {
-      google: `https://www.google.com/search?q=${encodeURIComponent(q)}`,
-      linkedin: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(q)}`,
-      crunchbase: `https://www.crunchbase.com/discover/organization.companies/field/organizations/categories/${encodeURIComponent(selIndustries[0] || "technology")}`,
-    };
-    window.open(urls[engine] || urls.google, "_blank", "noopener,noreferrer");
-  };
-
-  const openCompanySearch = (company) => {
-    const q = `${company.name} ${company.industry} company`;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener,noreferrer");
-  };
-
-  const openLinkedInCompany = (company) => {
-    window.open(`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(company.name)}`, "_blank", "noopener,noreferrer");
-  };
+  const toggle = (setter) => (val) =>
+    setter(prev =>
+      prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
 
   const prospects = [
-    { name:"Apex Systems", industry:"SaaS", employees:"201–1,000", revenue:"$10M–$100M", funding:"Series B", region:"North America", color:"#4c8fff", desc:"B2B workflow automation, 450 employees", match:96 },
-    { name:"NovaPay", industry:"FinTech", employees:"51–200", revenue:"$1M–$10M", funding:"Series A", region:"Europe", color:"#818cf8", desc:"Payment infrastructure, 120 employees", match:88 },
-    { name:"ClearHealth AI", industry:"HealthTech", employees:"51–200", revenue:"$1M–$10M", funding:"Series A", region:"North America", color:"#10d9a0", desc:"AI diagnostics platform, 80 employees", match:84 },
-    { name:"LogiQ", industry:"Logistics", employees:"201–1,000", revenue:"$10M–$100M", funding:"Series B", region:"Asia Pacific", color:"#f59e0b", desc:"Supply chain optimization, 350 employees", match:79 },
-    { name:"CyberCore", industry:"Cybersecurity", employees:"11–50", revenue:"$1M–$10M", funding:"Seed", region:"North America", color:"#f43f5e", desc:"Zero-trust security platform, 35 employees", match:75 },
-    { name:"EduFlow", industry:"Education", employees:"11–50", revenue:"< $1M", funding:"Bootstrapped", region:"Europe", color:"#a78bfa", desc:"Corporate learning management, 20 employees", match:68 },
-    { name:"GreenTech Solutions", industry:"CleanTech", employees:"201–1,000", revenue:"$100M+", funding:"Series C+", region:"North America", color:"#06b6d4", desc:"Renewable energy analytics, 600 employees", match:91 },
-    { name:"ShopAI", industry:"E-Commerce", employees:"51–200", revenue:"$1M–$10M", funding:"Series A", region:"Asia Pacific", color:"#fb923c", desc:"AI-driven commerce personalization, 90 employees", match:72 },
-  ].filter(p => {
-    if (selIndustries.length && !selIndustries.includes(p.industry)) return false;
-    if (selRevenue.length && !selRevenue.includes(p.revenue)) return false;
-    if (selEmployees.length && !selEmployees.includes(p.employees)) return false;
-    if (selFunding.length && !selFunding.includes(p.funding)) return false;
-    if (selRegion.length && !selRegion.includes(p.region)) return false;
+    { id:1, name:"Apex Dynamics", industry:"SaaS", employees:"201–1,000", revenue:"$10M–$100M", funding:"Series B", region:"North America", color:"#6366f1", desc:"AI-powered workflow automation, 340 employees", match:94 },
+    { id:2, name:"GreenTech Solutions", industry:"CleanTech", employees:"201–1,000", revenue:"$100M+", funding:"Series C+", region:"North America", color:"#06b6d4", desc:"Renewable energy analytics, 600 employees", match:91 },
+    { id:3, name:"ShopAI", industry:"E-Commerce", employees:"51–200", revenue:"$1M–$10M", funding:"Series A", region:"North America", color:"#f59e0b", desc:"Personalized shopping AI for D2C brands, 120 employees", match:88 },
+    { id:4, name:"MediSync Health", industry:"HealthTech", employees:"51–200", revenue:"$10M–$100M", funding:"Series B", region:"Europe", color:"#10b981", desc:"EHR interoperability middleware, 180 employees", match:86 },
+    { id:5, name:"FinFlow Analytics", industry:"FinTech", employees:"201–1,000", revenue:"$10M–$100M", funding:"Series B", region:"North America", color:"#8b5cf6", desc:"Real-time treasury and cash-flow intelligence, 420 employees", match:83 },
+    { id:6, name:"LogiSmart", industry:"Logistics", employees:"1,001–5,000", revenue:"$100M+", funding:"Series C+", region:"Asia Pacific", color:"#ef4444", desc:"Predictive freight optimization platform, 2,100 employees", match:79 },
+    { id:7, name:"CloudSecure", industry:"Cybersecurity", employees:"51–200", revenue:"$1M–$10M", funding:"Series A", region:"North America", color:"#f97316", desc:"Zero-trust access management for mid-market, 95 employees", match:77 },
+    { id:8, name:"EduForge", industry:"EdTech", employees:"11–50", revenue:"<$1M", funding:"Seed", region:"Europe", color:"#14b8a6", desc:"Adaptive learning OS for universities, 38 employees", match:74 },
+    { id:9, name:"RetailIQ", industry:"RetailTech", employees:"51–200", revenue:"$10M–$100M", funding:"Series B", region:"North America", color:"#ec4899", desc:"Omnichannel inventory intelligence, 210 employees", match:72 },
+    { id:10, name:"AgriPrecision", industry:"AgriTech", employees:"11–50", revenue:"$1M–$10M", funding:"Series A", region:"Asia Pacific", color:"#84cc16", desc:"Drone-based crop analytics for large farms, 45 employees", match:70 },
+  ];
+
+  const industries  = [...new Set(prospects.map(p => p.industry))];
+  const revenues    = [...new Set(prospects.map(p => p.revenue))];
+  const employeeRanges = [...new Set(prospects.map(p => p.employees))];
+  const fundings    = [...new Set(prospects.map(p => p.funding))];
+  const regions     = [...new Set(prospects.map(p => p.region))];
+
+  const filtered = prospects.filter(p => {
+    if (selIndustries.length  && !selIndustries.includes(p.industry))  return false;
+    if (selRevenue.length     && !selRevenue.includes(p.revenue))      return false;
+    if (selEmployees.length   && !selEmployees.includes(p.employees))  return false;
+    if (selFunding.length     && !selFunding.includes(p.funding))      return false;
+    if (selRegion.length      && !selRegion.includes(p.region))        return false;
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      if (!p.name.toLowerCase().includes(q) && !p.industry.toLowerCase().includes(q) && !p.desc.toLowerCase().includes(q)) return false;
+    }
     return true;
-  }).sort((a, b) => b.match - a.match);
+  });
 
-  const activeFilters = selIndustries.length + selRevenue.length + selEmployees.length + selFunding.length + selProduct.length + selRegion.length;
+  const handleAddToPipeline = (prospect) => {
+    if (!addDeal) return;
+    const newDeal = {
+      id: Date.now(),
+      title: "New Opportunity",
+      company: prospect.name,
+      contact: "—",
+      value: 0,
+      stage: "Prospecting",
+      industry: prospect.industry,
+      employees: prospect.employees,
+      revenue: prospect.revenue,
+      funding: prospect.funding,
+      probability: Math.round(prospect.match * 0.3),
+      daysInStage: 0,
+      expectedClose: new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0],
+      priority: "medium",
+      notes: prospect.desc,
+      nextAction: "Initial outreach",
+      nextActionDate: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+      tags: [prospect.industry],
+      health: "good",
+    };
+    addDeal(newDeal);
+    setAddedIds(prev => new Set([...prev, prospect.id]));
+    setNotification(prospect.name + " added to pipeline!");
+    setTimeout(() => setNotification(null), 3000);
+  };
 
-  const hasFilters = activeFilters > 0;
+  const FilterChips = ({ label, options, selected, onToggle }) => (
+    <div style={{marginBottom:16}}>
+      <div style={{fontSize:11,fontWeight:600,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{label}</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {options.map(opt => (
+          <button key={opt} onClick={() => onToggle(opt)} style={{
+            padding:"4px 10px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",border:"1px solid",
+            background: selected.includes(opt) ? "#6366f1" : "transparent",
+            borderColor: selected.includes(opt) ? "#6366f1" : "#334155",
+            color: selected.includes(opt) ? "#fff" : "#94a3b8",
+            transition:"all .15s"
+          }}>{opt}</button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="fade">
-      <div style={{ display: "flex", gap: 16 }}>
-        {/* Filters panel */}
-        <div style={{ width: 270, flexShrink: 0 }}>
-          <div className="card">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#dde8ff" }}>
-                <SlidersHorizontal size={13} style={{ display:"inline",marginRight:6 }} />
-                Filters
-              </div>
-              {activeFilters > 0 && (
-                <button className="btn btn-g" style={{ padding:"2px 8px",fontSize:10,gap:4 }}
-                  onClick={() => { setSelIndustries([]); setSelRevenue([]); setSelEmployees([]); setSelFunding([]); setSelProduct([]); setSelRegion([]); }}>
-                  <X size={9} />Clear ({activeFilters})
-                </button>
-              )}
-            </div>
+    <div style={{display:"flex",gap:0,height:"calc(100vh - 56px)",overflow:"hidden"}}>
+      {/* Sidebar filters */}
+      <div style={{width:260,flexShrink:0,background:"#0f172a",borderRight:"1px solid #1e293b",padding:20,overflowY:"auto"}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:20,display:"flex",alignItems:"center",gap:8}}>
+          <Target size={16} color="#6366f1"/> Filters
+        </div>
+        <div style={{marginBottom:16}}>
+          <input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search companies..."
+            style={{width:"100%",background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:13,outline:"none",boxSizing:"border-box"}}
+          />
+        </div>
+        <FilterChips label="Industry" options={industries} selected={selIndustries} onToggle={toggle(setSelIndustries)} />
+        <FilterChips label="Revenue" options={revenues} selected={selRevenue} onToggle={toggle(setSelRevenue)} />
+        <FilterChips label="Employees" options={employeeRanges} selected={selEmployees} onToggle={toggle(setSelEmployees)} />
+        <FilterChips label="Funding" options={fundings} selected={selFunding} onToggle={toggle(setSelFunding)} />
+        <FilterChips label="Region" options={regions} selected={selRegion} onToggle={toggle(setSelRegion)} />
+        {(selIndustries.length||selRevenue.length||selEmployees.length||selFunding.length||selRegion.length||searchTerm) ? (
+          <button onClick={() => { setSelIndustries([]); setSelRevenue([]); setSelEmployees([]); setSelFunding([]); setSelRegion([]); setSearchTerm(""); }}
+            style={{marginTop:8,padding:"6px 12px",background:"#1e293b",border:"1px solid #334155",borderRadius:6,color:"#94a3b8",fontSize:12,cursor:"pointer",width:"100%"}}>
+            Clear all filters
+          </button>
+        ) : null}
+      </div>
 
-            {[
-              { label:"Industry", items:INDUSTRIES, sel:selIndustries, setSel: v => toggle(selIndustries, setSelIndustries, v) },
-              { label:"Revenue", items:REVENUE_RANGES, sel:selRevenue, setSel: v => toggle(selRevenue, setSelRevenue, v) },
-              { label:"Employees", items:EMPLOYEE_RANGES, sel:selEmployees, setSel: v => toggle(selEmployees, setSelEmployees, v) },
-              { label:"Funding Stage", items:FUNDING_STAGES, sel:selFunding, setSel: v => toggle(selFunding, setSelFunding, v) },
-              { label:"Product Type", items:PRODUCT_TYPES, sel:selProduct, setSel: v => toggle(selProduct, setSelProduct, v) },
-              { label:"Region", items:REGIONS, sel:selRegion, setSel: v => toggle(selRegion, setSelRegion, v) },
-            ].map(f => (
-              <div key={f.label} className="fg">
-                <div className="fl">{f.label}</div>
-                <div className="tag-flex">
-                  {f.items.map(item => (
-                    <div key={item} className={`ftag ${f.sel.includes(item) ? "sel" : ""}`} onClick={() => f.setSel(item)}>
-                      {item}
-                    </div>
+      {/* Results panel */}
+      <div style={{flex:1,background:"#0a0f1a",overflowY:"auto",padding:24,position:"relative"}}>
+        {notification && (
+          <div style={{position:"fixed",top:20,right:20,background:"#10b981",color:"#fff",padding:"10px 18px",borderRadius:8,fontWeight:600,fontSize:13,zIndex:1000,boxShadow:"0 4px 12px rgba(0,0,0,0.3)"}}>
+            ✓ {notification}
+          </div>
+        )}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div>
+            <h2 style={{color:"#fff",margin:0,fontSize:18,fontWeight:700}}>Target Companies</h2>
+            <p style={{color:"#64748b",margin:"4px 0 0",fontSize:13}}>{filtered.length} of {prospects.length} companies match your criteria</p>
+          </div>
+        </div>
+        {filtered.length === 0 ? (
+          <div style={{textAlign:"center",padding:60,color:"#475569"}}>
+            <Target size={40} style={{marginBottom:12,opacity:0.4}}/>
+            <p style={{fontSize:15}}>No companies match the selected filters.</p>
+          </div>
+        ) : (
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16}}>
+            {filtered.map(prospect => (
+              <div key={prospect.id} style={{background:"#0f172a",border:"1px solid #1e293b",borderRadius:12,padding:20,display:"flex",flexDirection:"column",gap:12,transition:"border-color .2s",borderLeft:"3px solid " + prospect.color}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{prospect.name}</div>
+                    <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{prospect.industry} · {prospect.region}</div>
+                  </div>
+                  <div style={{background:"#1e293b",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,color:prospect.match>=85?"#10b981":prospect.match>=75?"#f59e0b":"#94a3b8"}}>
+                    {prospect.match}% match
+                  </div>
+                </div>
+                <p style={{fontSize:13,color:"#94a3b8",margin:0,lineHeight:1.5}}>{prospect.desc}</p>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {[prospect.employees + " emp", prospect.revenue, prospect.funding].map(tag => (
+                    <span key={tag} style={{background:"#1e293b",borderRadius:6,padding:"3px 8px",fontSize:11,color:"#64748b"}}>{tag}</span>
                   ))}
                 </div>
+                <button
+                  onClick={() => handleAddToPipeline(prospect)}
+                  disabled={addedIds.has(prospect.id)}
+                  style={{
+                    marginTop:"auto",padding:"9px 16px",borderRadius:8,border:"none",cursor: addedIds.has(prospect.id) ? "not-allowed" : "pointer",
+                    background: addedIds.has(prospect.id) ? "#1e293b" : "#6366f1",
+                    color: addedIds.has(prospect.id) ? "#475569" : "#fff",
+                    fontWeight:600,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all .2s"
+                  }}>
+                  {addedIds.has(prospect.id) ? (
+                    <>✓ Added to Pipeline</>
+                  ) : (
+                    <><Plus size={14}/> Add to Pipeline</>
+                  )}
+                </button>
               </div>
             ))}
-
-            {/* Web Search Section */}
-            <div style={{ borderTop: "1px solid var(--b1)", paddingTop: 16, marginTop: 4 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#dde8ff", marginBottom: 10, display:"flex", alignItems:"center", gap:6 }}>
-                <Globe size={12} />
-                Search Real Companies
-              </div>
-              <div style={{ fontSize: 10.5, color: "#6d8ab5", marginBottom: 10, lineHeight: 1.5 }}>
-                {hasFilters
-                  ? `Use your ${activeFilters} filter${activeFilters > 1 ? "s" : ""} to find real companies online:`
-                  : "Select filters above, then search the web for real matching companies:"}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                <button className="btn btn-p" style={{ width:"100%", justifyContent:"center", gap:6 }}
-                  onClick={() => openWebSearch("google")}>
-                  <Search size={11} /> Search Google
-                </button>
-                <button className="btn btn-g" style={{ width:"100%", justifyContent:"center", gap:6, border:"1px solid #0a66c2", color:"#0a66c2" }}
-                  onClick={() => openWebSearch("linkedin")}>
-                  <Users size={11} /> Search LinkedIn
-                </button>
-                <button className="btn btn-g" style={{ width:"100%", justifyContent:"center", gap:6 }}
-                  onClick={() => openWebSearch("crunchbase")}>
-                  <BarChart3 size={11} /> Browse Crunchbase
-                </button>
-              </div>
-              {hasFilters && (
-                <div style={{ marginTop: 10, padding: "8px 10px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--b1)" }}>
-                  <div style={{ fontSize: 9.5, color: "#3a5078", marginBottom: 4, fontWeight: 700 }}>SEARCH QUERY PREVIEW</div>
-                  <div style={{ fontSize: 10.5, color: "#6d8ab5", wordBreak: "break-word", lineHeight: 1.5 }}>{buildSearchQuery()}</div>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
-
-        {/* Results */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-            <div style={{ fontSize:13, fontWeight:700, color:"#dde8ff" }}>
-              {prospects.length} Suggested Prospects
-            </div>
-            <div style={{ fontSize:11, color:"#6d8ab5" }}>Sorted by match score · click cards to search web</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {prospects.length === 0 ? (
-              <div className="card" style={{ textAlign:"center", padding:"40px 20px", color:"#3a5078" }}>
-                <Target size={32} style={{ marginBottom:10, opacity:.4 }} />
-                <div style={{ fontSize:14, fontWeight:700, marginBottom:6 }}>No matches found</div>
-                <div style={{ fontSize:12, marginBottom:16 }}>Try adjusting your filters to find more prospects</div>
-                <button className="btn btn-p" style={{ margin:"0 auto" }} onClick={() => openWebSearch("google")}>
-                  <Search size={11} /> Search Google with current filters
-                </button>
-              </div>
-            ) : prospects.map((p, i) => (
-              <div key={i} className="prospect" style={{ cursor: "default" }}>
-                <div className="co-ico" style={{ background: p.color, cursor:"pointer" }} onClick={() => openCompanySearch(p)} title="Search on Google">
-                  {p.name[0]}
-                </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div className="prospect-name" style={{ cursor:"pointer", textDecoration:"underline", textDecorationColor:"rgba(76,143,255,.3)" }}
-                    onClick={() => openCompanySearch(p)}>
-                    {p.name}
-                  </div>
-                  <div className="prospect-meta">{p.desc}</div>
-                  <div className="prospect-tags">
-                    <span className="chip ind">{p.industry}</span>
-                    <span className="chip">{p.funding}</span>
-                    <span className="chip">{p.employees} emp</span>
-                    <span className="chip"><MapPin size={8} style={{display:"inline",marginRight:3}} />{p.region}</span>
-                  </div>
-                  <div style={{ display:"flex", gap:6, marginTop:8 }}>
-                    <button className="btn btn-g" style={{ padding:"3px 9px", fontSize:10, gap:4 }} onClick={() => openCompanySearch(p)}>
-                      <Search size={9} />Google
-                    </button>
-                    <button className="btn btn-g" style={{ padding:"3px 9px", fontSize:10, gap:4, color:"#0a66c2", borderColor:"#0a66c2" }} onClick={() => openLinkedInCompany(p)}>
-                      <Users size={9} />LinkedIn
-                    </button>
-                    <button className="btn btn-g" style={{ padding:"3px 9px", fontSize:10, gap:4 }}
-                      onClick={() => window.open(`https://www.crunchbase.com/textsearch?q=${encodeURIComponent(p.name)}`, "_blank")}>
-                      <BarChart3 size={9} />Crunchbase
-                    </button>
-                  </div>
-                </div>
-                <div className="match-score">
-                  <div className="ms-val" style={{ color: p.match >= 85 ? "#10d9a0" : p.match >= 70 ? "#f59e0b" : "#6d8ab5" }}>
-                    {p.match}%
-                  </div>
-                  <div className="ms-l">match</div>
-                  <div style={{ marginTop:6 }}>
-                    <button className="btn btn-p" style={{ padding:"4px 10px", fontSize:10 }}>
-                      <Plus size={9} />Add to CRM
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Bottom search CTA */}
-            {prospects.length > 0 && (
-              <div className="card" style={{ padding:"16px 18px", textAlign:"center", background:"rgba(76,143,255,.05)", border:"1px dashed var(--b2)" }}>
-                <div style={{ fontSize:12, color:"#6d8ab5", marginBottom:10 }}>
-                  Find more real companies matching these filters:
-                </div>
-                <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
-                  <button className="btn btn-p" style={{ gap:6 }} onClick={() => openWebSearch("google")}>
-                    <Search size={11} />Search Google
-                  </button>
-                  <button className="btn btn-g" style={{ gap:6, border:"1px solid #0a66c2", color:"#0a66c2" }} onClick={() => openWebSearch("linkedin")}>
-                    <Users size={11} />LinkedIn Companies
-                  </button>
-                  <button className="btn btn-g" style={{ gap:6 }} onClick={() => openWebSearch("crunchbase")}>
-                    <BarChart3 size={11} />Crunchbase
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -1221,7 +1175,7 @@ export default function App() {
             {view === "deals"      && <Deals deals={deals} search={search} />}
             {view === "contacts"   && <Contacts contacts={CONTACTS} search={search} />}
             {view === "companies"  && <Companies search={search} />}
-            {view === "targets"    && <TargetFinder />}
+            {view === "targets"    && <TargetFinder addDeal={addDeal} />}
             {view === "analytics"  && <Analytics deals={deals} />}
             {view === "settings"   && <SettingsView />}
           </div>
