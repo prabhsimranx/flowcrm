@@ -229,7 +229,25 @@ const Sidebar = ({view,setView,dealCount,currentUser,onUserClick}) => {
   const nav=[{group:"Overview",items:[{id:"dashboard",icon:<LayoutDashboard size={14}/>,label:"Dashboard"},{id:"analytics",icon:<BarChart3 size={14}/>,label:"Analytics"}]},{group:"Sales",items:[{id:"pipeline",icon:<Layers size={14}/>,label:"Pipeline",badge:dealCount},{id:"deals",icon:<Briefcase size={14}/>,label:"Deals"}]},{group:"CRM",items:[{id:"contacts",icon:<Users size={14}/>,label:"Contacts"},{id:"companies",icon:<Building2 size={14}/>,label:"Companies"}]},{group:"Tools",items:[{id:"targets",icon:<Target size={14}/>,label:"Target Finder"},{id:"appanalytics",icon:<Gauge size={14}/>,label:"App Analytics"},{id:"settings",icon:<Settings size={14}/>,label:"Settings"}]}];
   return <div className="sidebar"><div className="logo"><div className="logo-mark"><Zap size={15} color="#fff"/></div><div><div className="logo-name">FlowCRM</div><div className="logo-sub">Pipeline OS</div></div></div><nav className="nav">{nav.map(g=><div key={g.group} className="nav-sect"><div className="nav-label">{g.group}</div>{g.items.map(item=><div key={item.id} className={`ni ${view===item.id?"on":""}`} onClick={()=>setView(item.id)}>{item.icon}{item.label}{item.badge&&<span className="nb">{item.badge}</span>}</div>)}</div>)}</nav><div className="sb-foot"><div className="u-row" onClick={onUserClick}><div className="ava" style={{background:currentUser.color}}>{currentUser.initials}</div><div><div className="un">{currentUser.name}</div><div className="ur">{currentUser.role}</div></div></div></div></div>;
 };
-const UserMenu = ({currentUser,onSwitch,onClose}) => <>
+const LoginView = ({onLogin}) => <div style={{position:"fixed",inset:0,background:"#0a0f1a",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Sora',sans-serif"}}>
+  <div style={{background:"#111928",border:"1px solid rgba(100,160,255,0.2)",borderRadius:16,padding:"40px 48px",width:380,boxShadow:"0 24px 80px rgba(0,0,0,0.6)",display:"flex",flexDirection:"column",alignItems:"center",gap:24}}>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{background:"#6366f1",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
+      <div><div style={{color:"#dde8ff",fontWeight:700,fontSize:16}}>FlowCRM</div><div style={{color:"#6d8ab5",fontSize:10,letterSpacing:".1em",textTransform:"uppercase"}}>Pipeline OS</div></div>
+    </div>
+    <div style={{textAlign:"center"}}>
+      <div style={{color:"#dde8ff",fontWeight:700,fontSize:20,marginBottom:6}}>Welcome back</div>
+      <div style={{color:"#6d8ab5",fontSize:13}}>Sign in to continue to FlowCRM</div>
+    </div>
+    <div style={{width:"100%",display:"flex",flexDirection:"column",gap:12}}>
+      <div><label style={{color:"#6d8ab5",fontSize:11,fontWeight:600,display:"block",marginBottom:6}}>EMAIL</label><input type="email" placeholder="you@company.com" style={{width:"100%",boxSizing:"border-box",background:"#0a0f1a",border:"1px solid #334155",borderRadius:8,padding:"10px 12px",color:"#dde8ff",fontSize:13,fontFamily:"'Sora',sans-serif",outline:"none"}}/></div>
+      <div><label style={{color:"#6d8ab5",fontSize:11,fontWeight:600,display:"block",marginBottom:6}}>PASSWORD</label><input type="password" placeholder="••••••••" style={{width:"100%",boxSizing:"border-box",background:"#0a0f1a",border:"1px solid #334155",borderRadius:8,padding:"10px 12px",color:"#dde8ff",fontSize:13,fontFamily:"'Sora',sans-serif",outline:"none"}}/></div>
+    </div>
+    <button onClick={onLogin} style={{width:"100%",background:"#6366f1",color:"#fff",border:"none",borderRadius:8,padding:12,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>Sign In</button>
+    <div style={{color:"#6d8ab5",fontSize:11}}>Demo: click Sign In to continue</div>
+  </div>
+</div>;
+const UserMenu = ({currentUser,onSwitch,onClose,onSignOut}) => <>
   <div style={{position:"fixed",inset:0,zIndex:99}} onClick={onClose}/>
   <div className="user-menu pop">
     <div style={{fontSize:10,fontWeight:700,color:"var(--t3)",padding:"4px 10px 6px",textTransform:"uppercase",letterSpacing:".1em"}}>Switch User</div>
@@ -239,7 +257,7 @@ const UserMenu = ({currentUser,onSwitch,onClose}) => <>
       {currentUser.id===u.id&&<CheckCircle2 size={12} color="var(--a)" style={{marginLeft:"auto"}}/>}
     </div>)}
     <div style={{borderTop:"1px solid var(--b1)",margin:"6px 0 2px"}}/>
-    <div className="user-menu-item" onClick={onClose} style={{color:"var(--danger)"}}><LogOut size={12}/><span>Sign Out</span></div>
+    <div className="user-menu-item" onClick={onSignOut} style={{color:"var(--danger)"}}><LogOut size={12}/><span>Sign Out</span></div>
   </div>
 </>;
 const VIEW_TITLES={dashboard:"Dashboard",analytics:"Analytics",pipeline:"Pipeline Board",deals:"All Deals",contacts:"Contacts",companies:"Companies",targets:"Target Finder",settings:"Settings",appanalytics:"App Analytics"};
@@ -530,6 +548,7 @@ const TargetFinder=({addDeal})=>{
           <div style={{display:"flex",gap:6}}>
             <button onClick={()=>{window.open(`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(p.name)}`,"_blank");_analytics.track("linkedin_search",{name:p.name});}} style={{flex:1,padding:"7px 8px",borderRadius:7,border:"1px solid #334155",cursor:"pointer",background:"#1e293b",color:"#94a3b8",fontWeight:600,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><Globe size={11}/> LinkedIn</button>
             <button onClick={()=>{window.open(`https://www.google.com/search?q=${encodeURIComponent(p.name+" "+p.industry)}`,"_blank");_analytics.track("google_search",{name:p.name});}} style={{flex:1,padding:"7px 8px",borderRadius:7,border:"1px solid #334155",cursor:"pointer",background:"#1e293b",color:"#94a3b8",fontWeight:600,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><Search size={11}/> Google</button>
+            <button onClick={()=>{window.open(`https://www.crunchbase.com/search/organizations/field/organizations/facet_ids/company?q=${encodeURIComponent(p.name)}`,"_blank");_analytics.track("crunchbase_search",{name:p.name});}} style={{flex:1,padding:"7px 8px",borderRadius:7,border:"1px solid #334155",cursor:"pointer",background:"#1e293b",color:"#94a3b8",fontWeight:600,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><BarChart3 size={11}/> Crunchbase</button>
             <button onClick={()=>handleAdd(p)} disabled={addedIds.has(p.id)} style={{flex:1,padding:"7px 8px",borderRadius:7,border:"none",cursor:addedIds.has(p.id)?"not-allowed":"pointer",background:addedIds.has(p.id)?"#1e293b":"#6366f1",color:addedIds.has(p.id)?"#475569":"#fff",fontWeight:600,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all .2s"}}>{addedIds.has(p.id)?"✓ Added":<><Plus size={11}/> Add to CRM</>}</button>
           </div>
         </div>)}
@@ -740,7 +759,7 @@ export default function App(){
   return <>
     <style>{CSS}</style>
     <div className="shell" style={{position:"relative"}}>
-      {showUserMenu&&<UserMenu currentUser={currentUser} onSwitch={(u)=>{setCurrentUser(u);_analytics.track("user_switch",{userId:u.id});}} onClose={()=>setShowUserMenu(false)}/>}
+      {showUserMenu&&<UserMenu currentUser={currentUser} onSwitch={(u)=>{setCurrentUser(u);_analytics.track("user_switch",{userId:u.id});}} onClose={()=>setShowUserMenu(false)} onSignOut={()=>{setShowUserMenu(false);setView("login");}}/>}
       <Sidebar view={view} setView={handleSetView} dealCount={deals.filter(d=>d.stage!=="Won"&&d.stage!=="Lost").length} currentUser={currentUser} onUserClick={()=>setShowUserMenu(v=>!v)}/>
       <div className="main">
         <Topbar view={view} search={search} setSearch={setSearch} onAdd={()=>setModal("add")}/>
@@ -753,7 +772,8 @@ export default function App(){
           {view==="targets"&&<TargetFinder addDeal={addDeal}/>}
           {view==="analytics"&&<Analytics deals={deals}/>}
           {view==="appanalytics"&&<AppAnalyticsView/>}
-          {view==="settings"&&<SettingsView/>}
+          {view==="login"&&<LoginView onLogin={()=>setView("dashboard")}/>}
+    {view==="settings"&&<SettingsView/>}
         </div>
       </div>
       {modal==="add"&&<AddDealModal onClose={()=>setModal(null)} onAdd={addDeal}/>}
